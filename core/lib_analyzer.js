@@ -1,8 +1,27 @@
 /*eslint no-plusplus: 0*/
+
+import {createAction} from "@reduxjs/toolkit";
+import Singleton from "../store";
+import {
+    chain_end,
+    chain_solved,
+    chain_solving,
+    chained, confirm_cards,
+    draw,
+    move,
+    new_phase,
+    new_turn,
+    retry, select_battlecmd, select_card,
+    select_chain,
+    select_idlecmd,
+    select_place, select_position, shuffle_deck, shuffle_hand
+} from "../store/action";
+
 const enums = require('./enums.js'),
     makeCard = require('./lib_card.js'),
     BufferStreamReader = require('./model_stream_reader');
 
+const store = Singleton.getInstance();
 
 let translator = {};
 
@@ -117,8 +136,12 @@ function getIdleSet(pbuf, hasDescriptions) {
 }
 
 function msg_retry(message, pbuf, game) {
-    message.desc = 'Error Occurs.';
-    game.retry();
+
+
+    store.dispatch(retry())
+
+
+    //todo: send the buffer to the player here
     return 1;
 }
 
@@ -154,12 +177,12 @@ function msg_hint(message, pbuf, game) {
 }
 
 function msg_new_turn(message, pbuf, game) {
-    game.refresh(0);
-    game.refresh(1);
+
     message.player = pbuf.readInt8();
-    game.sendBufferToPlayer(0, message);
-    game.reSendToPlayer(1);
-    game.sendToObservers();
+    store.dispatch(new_turn(message));
+    // game.sendBufferToPlayer(0, message);
+    // game.reSendToPlayer(1);
+    // game.sendToObservers();
 }
 
 function msg_win(message, pbuf, game) {
@@ -174,13 +197,13 @@ function msg_win(message, pbuf, game) {
 }
 
 function msg_new_phase(message, pbuf, game) {
-    message.phase = pbuf.readInt16();
-    message.gui_phase = enums.phase[message.phase];
-    game.refresh(0);
-    game.refresh(1);
-    game.sendBufferToPlayer(0, message);
-    game.reSendToPlayer(1);
-    game.sendToObservers();
+    message.phase = enums.phase[pbuf.readInt16()];
+    store.dispatch(new_phase(message))
+    // game.refresh(0);
+    // game.refresh(1);
+    // game.sendBufferToPlayer(0, message);
+    // game.reSendToPlayer(1);
+    // game.sendToObservers();
 }
 
 function msg_draw(message, pbuf, game) {
@@ -190,23 +213,31 @@ function msg_draw(message, pbuf, game) {
     message.cards = [];
     for (let i = 0; i < message.count; ++i) {
         message.cards.push({
-            id: pbuf.readInt32()
+            id: pbuf.readInt32(),
+            index: i,
         });
     }
-    game.sendBufferToPlayer(message.player, message);
-    game.reSendToPlayer(1 - message.player);
-    game.sendToObservers();
-    game.refresh(0);
-    game.refresh(1);
+
+    console.log(message)
+    store.dispatch(draw(message));
+
+    // game.sendBufferToPlayer(message.player, message);
+    // game.reSendToPlayer(1 - message.player);
+    // game.sendToObservers();
+    // game.refresh(0);
+    // game.refresh(1);
 }
 
 function msg_shuffle_deck(message, pbuf, game) {
     message.player = pbuf.readInt8();
-    game.sendBufferToPlayer(0, message);
-    game.reSendToPlayer(1);
-    game.sendToObservers();
-    game.refresh(0);
-    game.refresh(1);
+
+
+    store.dispatch(shuffle_deck(message))
+    // game.sendBufferToPlayer(0, message);
+    // game.reSendToPlayer(1);
+    // game.sendToObservers();
+    // game.refresh(0);
+    // game.refresh(1);
 }
 
 function msg_shuffle_hand(message, pbuf, game) {
@@ -216,11 +247,13 @@ function msg_shuffle_hand(message, pbuf, game) {
     for (let i = 0; i < message.count; ++i) {
         message.codes.push(pbuf.readInt32());
     }
-    game.sendBufferToPlayer(0, message);
-    game.sendBufferToPlayer(1 - message.player, message);
-    game.sendToObservers();
-    game.refresh(0);
-    game.refresh(1);
+    store.dispatch(shuffle_hand(message));
+
+    // game.sendBufferToPlayer(0, message);
+    // game.sendBufferToPlayer(1 - message.player, message);
+    // game.sendToObservers();
+    // game.refresh(0);
+    // game.refresh(1);
 }
 
 function msg_shuffle_extra(message, pbuf, game) {
@@ -252,36 +285,41 @@ function msg_chaining(message, pbuf, game) {
     };
     message.desc = pbuf.readInt32();
     message.ct = pbuf.readInt8(); // defunct in code
-    game.sendBufferToPlayer(0, message);
-    game.sendBufferToPlayer(1, message);
-    game.sendToObservers();
-    game.refresh(0);
-    game.refresh(1);
+
+
+    // game.sendBufferToPlayer(0, message);
+    // game.sendBufferToPlayer(1, message);
+    // game.sendToObservers();
+    // game.refresh(0);
+    // game.refresh(1);
 }
 
 function msg_chained(message, pbuf, game) {
     message.chain_link = pbuf.readInt8();
-    game.sendBufferToPlayer(0, message);
-    game.sendBufferToPlayer(1, message);
-    game.sendToObservers();
-    game.refresh(0);
-    game.refresh(1);
+    store.dispatch(chained(message));
+    // game.sendBufferToPlayer(0, message);
+    // game.sendBufferToPlayer(1, message);
+    // game.sendToObservers();
+    // game.refresh(0);
+    // game.refresh(1);
 }
 
 
 function msg_chain_solving(message, pbuf, game) {
     message.chain_link = pbuf.readInt8();
-    game.sendBufferToPlayer(0, message);
-    game.sendBufferToPlayer(1, message);
-    game.sendToObservers();
+    store.dispatch(chain_solving(message));
+    // game.sendBufferToPlayer(0, message);
+    // game.sendBufferToPlayer(1, message);
+    // game.sendToObservers();
 
 }
 
 function msg_chain_solved(message, pbuf, game) {
     message.ct = pbuf.readInt8(); // defunct in the code
-    game.sendBufferToPlayer(0, message);
-    game.sendBufferToPlayer(1, message);
-    game.sendToObservers();
+    // game.sendBufferToPlayer(0, message);
+    // game.sendBufferToPlayer(1, message);
+    // game.sendToObservers();
+    store.dispatch(chain_solved(message))
 }
 
 
@@ -348,9 +386,10 @@ function msg_damage(message, pbuf, game) {
     message.player = pbuf.readInt8();
     message.lp = pbuf.readInt32();
     message.multiplier = -1;
-    game.sendBufferToPlayer(0, message);
-    game.reSendToPlayer(1);
-    game.sendToObservers();
+    console.log(message)
+    // game.sendBufferToPlayer(0, message);
+    // game.reSendToPlayer(1);
+    // game.sendToObservers();
 }
 
 function msg_recover(message, pbuf, game) {
@@ -477,9 +516,11 @@ function msg_attack(message, pbuf, game) {
         index: pbuf.readInt8()
     };
     pbuf.readInt8();
-    game.sendBufferToPlayer(0, message);
-    game.reSendToPlayer(1);
-    game.sendToObservers();
+
+    console.log(message)
+    // game.sendBufferToPlayer(0, message);
+    // game.reSendToPlayer(1);
+    // game.sendToObservers();
 }
 
 function msg_battle(message, pbuf, game) {
@@ -497,9 +538,10 @@ function msg_battle(message, pbuf, game) {
     message.datk = pbuf.readInt32();
     message.ddef = pbuf.readInt32();
     message.dd = pbuf.readInt8();
-    game.sendBufferToPlayer(0, message);
-    game.reSendToPlayer(1);
-    game.sendToObservers();
+    console.log(message)
+    // game.sendBufferToPlayer(0, message);
+    // game.reSendToPlayer(1);
+    // game.sendToObservers();
 }
 
 function msg_missed_effect(pbuf, message, game) {
@@ -651,11 +693,14 @@ function msg_select_idlecmd(message, pbuf, game) {
     message.enableBattlePhase = pbuf.readInt8();
     message.enableEndPhase = pbuf.readInt8();
     message.shufflecount = pbuf.readInt8();
-    game.refresh(0);
-    game.refresh(1);
-    game.waitforResponse(message.player);
-    game.sendBufferToPlayer(message.player, message);
-    return 1;
+
+    console.log(message)
+    store.dispatch(select_idlecmd(message));
+    // game.refresh(0);
+    // game.refresh(1);
+    // game.waitforResponse(message.player);
+    // game.sendBufferToPlayer(message.player, message);
+    //return 1;
 }
 
 function msg_move(message, pbuf, game) {
@@ -676,12 +721,15 @@ function msg_move(message, pbuf, game) {
     message.r = pbuf.readInt32();
     message.reason = enums.reasons[message.r];
 
-    game.sendBufferToPlayer(message.previousController, message);
-    game.sendBufferToPlayer(1 - message.previousController, message);
-    game.sendToObservers();
+    console.log(message)
+    store.dispatch(move(message));
 
-    game.refresh(0);
-    game.refresh(1);
+    // game.sendBufferToPlayer(message.previousController, message);
+    // game.sendBufferToPlayer(1 - message.previousController, message);
+    // game.sendToObservers();
+    //
+    // game.refresh(0);
+    // game.refresh(1);
 }
 
 function msg_pos_change(message, pbuf, game) {
@@ -703,9 +751,10 @@ function msg_set(message, pbuf, game) {
     message.location = enums.locations[pbuf.readInt8()]; // current cLocation
     message.index = pbuf.readInt8(); // current sequence (index)
     message.position = enums.positions[pbuf.readInt8()];
-    game.sendBufferToPlayer(0, message);
-    game.sendBufferToPlayer(1, message);
-    game.sendToObservers();
+    console.log(message)
+    // game.sendBufferToPlayer(0, message);
+    // game.sendBufferToPlayer(1, message);
+    // game.sendToObservers();
 }
 
 function msg_swap(message, pbuf, game) {
@@ -770,10 +819,12 @@ function msg_select_battlecmd(message, pbuf, game) {
     }
     message.enableMainPhase2 = pbuf.readInt8();
     message.enableEndPhase = pbuf.readInt8();
-    game.refresh(0);
-    game.refresh(1);
-    game.waitforResponse(message.player);
-    game.sendBufferToPlayer(message.player, message);
+
+    store.dispatch(select_battlecmd(message))
+    // game.refresh(0);
+    // game.refresh(1);
+    // game.waitforResponse(message.player);
+    // game.sendBufferToPlayer(message.player, message);
     return 1;
 }
 
@@ -826,8 +877,10 @@ function msg_select_card(message, pbuf, game) {
             ss: pbuf.readInt8()
         });
     }
-    game.waitforResponse(message.player);
-    game.sendBufferToPlayer(message.player, message);
+
+    store.dispatch(select_card(message));
+    // game.waitforResponse(message.player);
+    // game.sendBufferToPlayer(message.player, message);
     return 1;
 }
 
@@ -851,8 +904,10 @@ function msg_select_chain(message, pbuf, game) {
             desc: pbuf.readInt32()
         });
     }
-    game.waitforResponse(message.player);
-    game.sendBufferToPlayer(message.player, message);
+    store.dispatch(select_chain(message));
+    //todo: eventually we need to send the chain to the corresponding player
+    // game.waitforResponse(message.player);
+    // game.sendBufferToPlayer(message.player, message);
     return 1;
 }
 
@@ -862,8 +917,10 @@ function msg_select_place(message, pbuf, game) {
     message.selectable_field = ~pbuf.readInt32(); // mind the bitwise modifier.
     message.selected_field = 0;
     message.zones = getSelectableZones(message.selectable_field);
-    game.waitforResponse(message.player);
-    game.sendBufferToPlayer(message.player, message);
+    store.dispatch(select_place(message));
+    console.log(message)
+    // game.waitforResponse(message.player);
+    // game.sendBufferToPlayer(message.player, message);
     return 1;
 }
 
@@ -873,19 +930,22 @@ function msg_select_position(message, pbuf, game) {
     message.positionsMask = pbuf.readInt8();
     message.positions = [];
     if (message.positionsMask & 0x1) {
-        message.positions.push(enums.positions[0x1]);
+        message.positions.push(0x1);
     }
     if (message.positionsMask & 0x2) {
-        message.positions.push(enums.positions[0x2]);
+        message.positions.push(0x2);
     }
     if (message.positionsMask & 0x4) {
-        message.positions.push(enums.positions[0x4]);
+        message.positions.push(0x4);
     }
     if (message.positionsMask & 0x8) {
-        message.positions.push(enums.positions[0x8]);
+        message.positions.push(0x8);
     }
-    game.waitforResponse(message.player);
-    game.sendBufferToPlayer(message.player, message);
+    store.dispatch(select_position(message))
+
+    console.log(message)
+    // game.waitforResponse(message.player);
+    // game.sendBufferToPlayer(message.player, message);
     return 1;
 }
 
@@ -998,13 +1058,19 @@ function msg_confirm_cards(message, pbuf, game) {
             index: pbuf.readInt8()
         });
     }
-    if (pbuf[5] !== LOCATION_DECK) {
-        game.sendBufferToPlayer(0, message);
-        game.reSendToPlayer(1);
-        game.sendToObservers();
+    const buf = pbuf[5];
+    if ( buf !== LOCATION_DECK) {
+
+        // game.sendBufferToPlayer(0, message);
+        // game.reSendToPlayer(1);
+        // game.sendToObservers();
         return;
+    } else {
+
     }
-    game.sendBufferToPlayer(message.player, message);
+    //todo: this is temporary. check ygopro again how the use if else
+    store.dispatch(confirm_cards(message))
+    //game.sendBufferToPlayer(message.player, message);
     return;
 }
 
@@ -1234,7 +1300,7 @@ function msg_summoned(message, pbuf, game) {
 }
 
 function msg_spsummoned(message, pbuf, game) {
-    user_interface_only(message, pbuf, game);
+    //todo: card is summoned, remember to send this to the player
 }
 
 function msg_flipsummoned(message, pbuf, game) {
@@ -1242,19 +1308,21 @@ function msg_flipsummoned(message, pbuf, game) {
 }
 
 function msg_chain_end(message, pbuf, game) {
-    user_interface_only(message, pbuf, game);
+    //user_interface_only(message, pbuf, game);
+    store.dispatch(chain_end(message))
+
 }
 
 function msg_attack_disabled(message, pbuf, game) {
-    user_interface_only(message, pbuf, game);
+    // user_interface_only(message, pbuf, game);
 }
 
 function msg_damage_step_start(message, pbuf, game) {
-    user_interface_only(message, pbuf, game);
+    // user_interface_only(message, pbuf, game);
 }
 
 function msg_damage_step_end(message, pbuf, game) {
-    user_interface_only(message, pbuf, game);
+    // user_interface_only(message, pbuf, game);
 }
 
 function msg_be_chain_target(message, pbuf, game) {
@@ -1427,6 +1495,7 @@ function analyze(coreMessage, length, game) {
             messageFunction = enums.STOC.STOC_GAME_MSG[commandEnum];
         let output = 0;
         if (!translator[messageFunction]) {
+            console.log(commandEnum)
             // there should always be a function to run. Otherwise is a bug in the BufferStreamReader step logic.
             throw new Error(`Missing translation function: ${commandEnum}`);
         }
@@ -1437,9 +1506,9 @@ function analyze(coreMessage, length, game) {
             throw new Error(`Did not comprehend enum:, ${commandEnum}`);
         }
 
-        console.log(messageFunction);
+       console.log(messageFunction);
 
-        output = (messageFunction) ? translator[messageFunction](message, pbuf, game) : 0;
+        output = (messageFunction) ? translator[messageFunction](message, pbuf) : 0;
         if (output) {
             return output;
         }

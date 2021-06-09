@@ -3,16 +3,24 @@
 const initialState = {
     turn: 0,
     phase: 0,
+    activateableCards: [],
     player: [
         {
-            hand: [],
-            mzone: [],
-            szone: [],
+            HAND: [],
+            MONSTERZONE: [0,0,0,0,0],
+            SPELLZONE: [0,0,0,0,0],
+            GRAVE: [],
+            EXTRA: [],
         },
         {
-            hand: []
+            HAND: [],
+            MONSTERZONE: [0,0,0,0,0],
+            SPELLZONE: [0,0,0,0,0],
+            GRAVE: [],
+            EXTRA: [],
         }
     ],
+    history: [],
 };
 
 export default initialState;

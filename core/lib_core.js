@@ -9,7 +9,7 @@ const ffi = require('ffi'),
     arch = os.arch(),
     fileExtension = (platform === 'win32') ? 'dll' : 'so',
     core_location = path.resolve(__dirname, `./bin/${platform}/${arch}/ocgcore.${fileExtension}`);
-
+console.log(core_location)
 module.exports = function() {
     return  new ffi.Library(core_location, {
         'set_script_reader': [bytePointer, ['pointer']],
