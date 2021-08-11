@@ -213,8 +213,7 @@ function msg_draw(message, pbuf, game) {
     message.cards = [];
     for (let i = 0; i < message.count; ++i) {
         message.cards.push({
-            id: pbuf.readInt32(),
-            index: i,
+            id: pbuf.readInt32()
         });
     }
 
@@ -370,9 +369,10 @@ function msg_become_target(message, pbuf, game) {
             ss: pbuf.readInt8()
         });
     }
-    game.sendBufferToPlayer(0, message);
-    game.sendBufferToPlayer(1, message);
-    game.sendToObservers();
+    console.log(message)
+    // game.sendBufferToPlayer(0, message);
+    // game.sendBufferToPlayer(1, message);
+    // game.sendToObservers();
 
 }
 
@@ -820,6 +820,7 @@ function msg_select_battlecmd(message, pbuf, game) {
     message.enableMainPhase2 = pbuf.readInt8();
     message.enableEndPhase = pbuf.readInt8();
 
+    console.log(message)
     store.dispatch(select_battlecmd(message))
     // game.refresh(0);
     // game.refresh(1);
@@ -904,6 +905,7 @@ function msg_select_chain(message, pbuf, game) {
             desc: pbuf.readInt32()
         });
     }
+
     store.dispatch(select_chain(message));
     //todo: eventually we need to send the chain to the corresponding player
     // game.waitforResponse(message.player);
@@ -1296,7 +1298,7 @@ function msg_reverse_deck(message, pbuf, game) {
 }
 
 function msg_summoned(message, pbuf, game) {
-    user_interface_only(message, pbuf, game);
+    //user_interface_only(message, pbuf, game);
 }
 
 function msg_spsummoned(message, pbuf, game) {

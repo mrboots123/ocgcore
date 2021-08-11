@@ -1,10 +1,17 @@
+import BufferStreamReader from "./model_stream_reader";
+import makeCard from "./lib_card";
+
 const libocgapi = require('./lib_core');
 const analyze = require("./lib_analyzer");
+const ffi = require('ffi'),
+    ref = require('ref'),
+    fs = require('fs');
 
 const Lib = (function () {
     let instance;
     let ocgcore;
     let pduel;
+    var result = 0;
 
     function createInstance() {
         ocgcore = libocgapi();
@@ -40,7 +47,32 @@ const Lib = (function () {
         return pduel;
     }
 
+    function queryCard(playerId, location, sequence){
+        const buffer = Buffer.alloc(0x40000);
+        buffer.type = ref.types.byte;
+        // const pbuffer = ref.alloc('pointer')
 
+        // ref.writePointer(pbuffer, 0, buffer);
+        // console.log('before')
+        // console.log(buffer)
+        const val = ocgcore.query_card(pduel, playerId, location, sequence, 0xffdfff, buffer, 0);
+        //
+        // console.log('after')
+        // console.log(ref.readPointer(pbuffer, 0))
+        //consol
+        const card = new BufferStreamReader(buffer);
+
+        card.readInt32();
+
+        const processCard = makeCard(card, playerId, true)
+        return processCard;
+
+    }
+
+    function setResponseI(data){
+        ocgcore.set_responsei(pduel, data);
+        process();
+    }
     function process(){
         const coreMessage = Buffer.alloc(0x1000);
         let flag = 0,
@@ -51,8 +83,9 @@ const Lib = (function () {
             if (flag === 2) {
                 break;
             }
-            const result = ocgcore.process(pduel),
-                length = result & 0xffff;
+            result = ocgcore.process(pduel);
+
+           const     length = result & 0xffff;
 
             flag = result >> 16;
             if (length) {
@@ -74,7 +107,9 @@ const Lib = (function () {
         setMessageHandler,
         process,
         getPduel,
-        preloadScript
+        preloadScript,
+        queryCard,
+        setResponseI,
     };
 })();
 

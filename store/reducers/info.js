@@ -6,6 +6,7 @@ import DataManager from "../../db";
 //const socket = Socket.getInstance();
 const dataManager = DataManager.getInstance();
 
+//todo: everytime a new command is issued, we need to clear the previous commands from the field
 const makeCard= (id) =>{
     return {...dataManager._datas.get(id), ...dataManager._strings.get(id)}
 }
@@ -14,48 +15,76 @@ const info = createReducer(initialState, {
         const { player, cards } = action.payload;
 
         for(let i = 0; i < cards.length; i++){
-            //state.player[player].HAND.splice(i, 1, {...dataManager._datas.get(cards[i].id), ...dataManager._strings.get(cards[i].id)});
-            state.player[player].HAND.push(makeCard(cards[i].id))
+            state.field[player].HAND.push(cards[i]);
         }
         state.history.push(action.payload)
 
     },
     MSG_NEW_PHASE: (state, action) => {
         const { phase } = action.payload;
-        state.phase = phase;
         state.history.push(action.payload)
     },
     MSG_NEW_TURN: (state, action) => {
         const { player } = action.payload;
-        state.turn = state.turn + 1;
         state.history.push(action.payload)
     },
     MSG_SELECT_IDLECMD: (state, action) => {
-        const { player, activatable_cards, msetable_cards, ssetable_cards } = action.payload;
-        state.activateableCards = activatable_cards.map(card => makeCard(card.id))
+        const { player,
+            activatable_cards,
+            msetable_cards,
+            repositionable_cards,
+            spsummonable_cards,
+            summonable_cards,
+            ssetable_cards
+        } = action.payload;
 
-        activatable_cards.forEach((card, index) => {
-            if(card.location === 'HAND'){
-                state.player[player].HAND.splice(card.index, 1, {...state.player[player].HAND[card.index], activatable: true, activatableIndex: index})
-            }
+        activatable_cards.forEach((card, i) => {
+            const { index, location } = card;
+            state.field[player][location].splice(index, 1, { ...state.field[player][location][index], activatable: { index: index, responsei: i }});
         });
 
-        ssetable_cards.forEach(card => {
-            if(card.location === 'HAND'){
-                state.player[player].HAND.splice(card.index, 1, {...state.player[player].HAND[card.index], ssetable: true})
-            }
+        msetable_cards.forEach((card, i) => {
+            const { index, location } = card;
+            state.field[player][location].splice(index, 1, { ...state.field[player][location][index], msetable: { index: index, responsei: i }});
         });
 
-        msetable_cards.forEach(card => {
-            if(card.location === 'HAND'){
-                state.player[player].HAND.splice(card.index, 1, {...state.player[player].HAND[card.index], msetable: true})
-            }
+        spsummonable_cards.forEach((card, i) => {
+            const { index, location } = card;
+            state.field[player][location].splice(index, 1, { ...state.field[player][location][index], spsummonable: { index: index, responsei: i }});
         });
 
-        //todo: here we have selected the player.
+        // repositionable_cards.forEach(element => {
+        //     for(const property in element){
+        //         if(property !== 'id'){
+        //
+        //         }
+        //     }
+        // });
+
+        repositionable_cards.forEach((card, i) => {
+
+            const {index, location} = card;
+            state.field[player][location].splice(index, 1, {
+                ...state.field[player][location][index],
+                repositionable: {index: index, responsei: i}
+            });
+        });
+
+        summonable_cards.forEach((card, i) => {
+            const { index, location } = card;
+            state.field[player][location].splice(index, 1, { ...state.field[player][location][index], summonable: { index: index, responsei: i }});
+        });
+
+        ssetable_cards.forEach((card, i) => {
+            const { index, location } = card;
+            state.field[player][location].splice(index, 1, { ...state.field[player][location][index], ssetable: { index: index, responsei: i }});
+        });
+
+
         state.history.push(action.payload)
     },
     MSG_SELECT_CHAIN: (state, action) => {
+        console.log(action.payload)
         state.history.push(action.payload)
     },
     MSG_SELECT_PLACE: (state, action) => {
@@ -68,30 +97,40 @@ const info = createReducer(initialState, {
         //todo: send to user
     },
     MSG_MOVE: (state, action) => {
-        const { id, currentController, currentIndex, currentLocation } = action.payload;
-        state.player[currentController][currentLocation].splice(currentIndex, 1, id);
+        const {
+            id,
+            previousIndex,
+            previousLocation,
+            previousController,
+            currentController,
+            currentLocation,
+            currentIndex,
+            currentPosition,
+        } = action.payload;
+
+
+        state.field[previousController][previousLocation].splice(previousIndex, 1);
+        state.field[currentController][currentLocation].splice(currentIndex, 1, { id: id });
         state.history.push(action.payload)
     },
     MSG_CHAINED: (state, action) => {
         const { chain_link } = action.payload;
-        state.chain_link = chain_link;
+        //state.chain_link = chain_link;
         state.history.push(action.payload)
     },
     MSG_CHAIN_SOLVING: (state, action) => {
         const { chain_link } = action.payload;
-        state.chain_link = chain_link;
+     //   state.chain_link = chain_link;
         state.history.push(action.payload)
     },
     MSG_SELECT_CARD: (state, action) => {
         const { player } = action.payload;
-        console.log(action.payload)
         state.history.push(action.payload)
         //send to user
     },
     MSG_SHUFFLE_HAND: (state, action) => {
         const { player, codes } = action.payload;
-        const shuffled = codes.map(code => makeCard(code));
-        state.player[player].HAND = shuffled;
+        state.field[player].HAND = codes.map(code => { return { id: code } });
         state.history.push(action.payload)
 
     },
@@ -115,6 +154,12 @@ const info = createReducer(initialState, {
         state.history.push(action.payload)
     },
     MSG_SELECT_BATTLECMD: (state, action) => {
+        const { activatable_cards, attackable_cards } = action.payload;
+
+        attackable_cards.forEach((card, i) => {
+            const { diratt, id, index, location, player,  } = card;
+            state.field[player][location].splice(index, 1, { ...state.field[player][location][index], attackable: { diratt: diratt, index: index, responsei: i }});
+        });
         state.history.push(action.payload)
     },
 })

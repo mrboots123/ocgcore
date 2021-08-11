@@ -47,8 +47,15 @@ socket.sockets.on('connection', function(socket) {
         console.log('requesting history!')
 
         socket.emit('data', store.getState())
+
         //todo: here we need to restart the process() from lib. which will then trigger a loop because of redux
         // here we must send the data downstream. but how if its encapsulated. sol: singleton out of the lib obj
+    });
+
+    socket.on('query_card', function (data){
+
+        const card = Lib.queryCard(0, 0x08, 1)
+        socket.emit('query_card_result', )
     });
 
     socket.on('responsei', function (data){
@@ -57,8 +64,7 @@ socket.sockets.on('connection', function(socket) {
         // solution: everyone has a jwt token so do this automatically
         console.log('setting response')
         console.log(data)
-        library.set_responsei(Lib.getPduel(), data);
-        Lib.process()
+        Lib.setResponseI( data);
 
     });
 
@@ -144,7 +150,7 @@ open({
     const path = require('path');
     const scriptReader = (scriptname, sizePointer) => {
 
-        const scriptsFolder = path.resolve('../ygopro-scripts')
+        const scriptsFolder = path.resolve('./ygopro-scripts')
         let file = scriptsFolder + path.join('/') + scriptname.substr(9, 13);
         const size = ref.reinterpret(sizePointer.deref()['ref.buffer'], 32);
 
@@ -244,7 +250,7 @@ open({
         94145683,94145683,94145683, // swallows nest 12
         90219263,90219263, // elegant egotist 14
         39275698, // harpies feather rest, 15
-        99590524,99590524 // treacherous trap hole 17
+        90238142,99590524 // treacherous trap hole 17
     ]
 
     const LOCATION_DECK = 0x01,POS_FACEDOWN_DEFENSE = 0x8;
@@ -263,6 +269,8 @@ open({
 
 
     const proc = Lib.process();
+
+    //console.log(Lib.queryCard(0, 0x01, 2));
 
     // function mainProcess() {
     //     const ocgcore = Lib.getInstance();
